@@ -1,0 +1,45 @@
+-- Setup, algebraic components, and deterministic hard instance.
+import NCCLowerBound.Definitions
+import NCCLowerBound.NumericChecks
+import NCCLowerBound.PaperSkeleton
+import NCCLowerBound.AlgebraicLayer
+import NCCLowerBound.AnalyticSetup
+import NCCLowerBound.PendingClaims
+import NCCLowerBound.PathEnergy
+import NCCLowerBound.DualQuadratic
+import NCCLowerBound.ValueFunction
+import NCCLowerBound.PathSpectrum
+import NCCLowerBound.RelaySmoothness
+import NCCLowerBound.SmoothnessBlocks
+import NCCLowerBound.RelayGeometry
+import NCCLowerBound.RelayObstructionCore
+import NCCLowerBound.RelayObstructionEuclidean
+import NCCLowerBound.ZeroChainPrimitive
+import NCCLowerBound.MoreauLocalization
+import NCCLowerBound.DeterministicZeroRespecting
+import NCCLowerBound.JointSmoothness
+import NCCLowerBound.FinalDeterministicZeroRespecting
+import NCCLowerBound.DeterministicFunctionClass
+
+-- Stochastic clipped-path construction and oracle analysis.
+import NCCLowerBound.StochasticHuber
+import NCCLowerBound.StochasticClippedPath
+import NCCLowerBound.StochasticAnalyticSetup
+import NCCLowerBound.StochasticPendingClaims
+import NCCLowerBound.StochasticClippedMax
+import NCCLowerBound.StochasticValueFunction
+import NCCLowerBound.StochasticZeroChain
+import NCCLowerBound.StochasticOracle
+import NCCLowerBound.StochasticProgress
+import NCCLowerBound.StochasticTranscript
+import NCCLowerBound.StochasticStationarity
+import NCCLowerBound.StochasticParameterClosure
+import NCCLowerBound.StochasticClippedSmoothness
+import NCCLowerBound.StochasticConcavity
+import NCCLowerBound.StochasticFunctionClass
+import NCCLowerBound.FinalStochasticZeroRespecting
+
+-- Paper-facing deterministic/stochastic interfaces and gap corollaries.
+import NCCLowerBound.PaperAlignedZeroRespecting
+import NCCLowerBound.StochasticGapCorollary
+import NCCLowerBound.Corollary4_2
