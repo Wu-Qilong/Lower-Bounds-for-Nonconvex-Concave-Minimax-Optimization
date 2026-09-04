@@ -5,7 +5,7 @@ This repository contains a Lean 4 / Mathlib formalization aligned with the manus
 
 The development formalizes the deterministic and stochastic first-order **zero-respecting** lower-bound constructions, including the primal–dual zero-chain, the bounded dual geometry, Moreau-envelope stationarity obstruction, Huber-clipped stochastic path, Bernoulli dual-frontier oracle, dual-gate counting argument, and the final parameter scaling.
 
-The manuscript itself is not distributed in this repository.  The release package was aligned against the manuscript file `Lower_Bounds_for_Nonconvex_Concave_Minimax_Optimization (26).pdf`; its SHA-256 fingerprint is recorded in `PAPER_AUDIT.md`.
+The manuscript itself is not distributed in this repository.  The release package was aligned against the manuscript file `Lower_Bounds_for_Nonconvex_Concave_Minimax_Optimization.pdf`; its SHA-256 fingerprint is recorded in `PAPER_AUDIT.md`.
 
 ## Main verified entry points
 
