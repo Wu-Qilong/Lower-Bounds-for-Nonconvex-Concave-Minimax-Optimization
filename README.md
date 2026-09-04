@@ -1,4 +1,5 @@
 # Lower Bounds for Nonconvex–Concave Minimax Optimization
+[![Formal Verification](https://github.com/Wu-Qilong/Lower-Bounds-for-Nonconvex-Concave-Minimax-Optimization/actions/workflows/verify.yml/badge.svg)](https://github.com/Wu-Qilong/Lower-Bounds-for-Nonconvex-Concave-Minimax-Optimization/actions/workflows/verify.yml)
 
 This repository contains a Lean 4 / Mathlib formalization aligned with the manuscript
 *Lower Bounds for Nonconvex–Concave Minimax Optimization*.
