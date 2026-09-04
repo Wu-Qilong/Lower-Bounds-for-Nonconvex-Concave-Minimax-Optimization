@@ -23,4 +23,4 @@ jobs:
           use-github-cache: false
 
       - name: Run repository verification
-        run: ./verify.sh
+        run: bash ./verify.sh
