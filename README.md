@@ -22,12 +22,7 @@ For the stochastic theorem, private algorithmic randomness is represented by a p
 NCCLowerBound.paperStochasticZeroRespectingLowerBound_fixedSeed
 ```
 
-The stochastic theorem has the paper's additive complexity form
-
-```text
-Omega(L^2 D_y Delta_Phi / eps^3
-      + L^3 D_y^2 Delta_Phi sigma^2 / eps^6).
-```
+The stochastic theorem has the paper's additive complexity form $\Omega(\frac{L^2 D_y \Delta_\Phi}{\epsilon^3} + \frac{L^3 D_y^2 \Delta_\Phi \sigma^2}{\epsilon^6})$.
 
 The deterministic and stochastic primal-dual-gap corollaries are represented in `Corollary4_2.lean` and `StochasticGapCorollary.lean`.
 
