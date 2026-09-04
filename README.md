@@ -38,9 +38,9 @@ The repository covers the proof chain used by the manuscript for zero-respecting
 - deterministic parameter scaling and Theorem 4.1 / Corollary 4.2 interface;
 - Huber clipping of dual-path edges and preservation of the deterministic maximizer/value function;
 - stochastic dual concavity and joint smoothness;
-- next-unrevealed dual-frontier gradient bound `G_N`;
+- next-unrevealed dual-frontier gradient bound $G_N$;
 - Bernoulli frontier oracle with unbiasedness and bounded mean-square error;
-- dual-gate progress counting and the `P(u_T = 0) >= 3/4` hidden-terminal event;
+- dual-gate progress counting and the $P(u_T = 0) \geq \frac{3}{4}$ hidden-terminal event;
 - expected Moreau-envelope obstruction and the additive stochastic lower bound;
 - stochastic primal-dual-gap reformulation corresponding to Corollary 5.6.
 
