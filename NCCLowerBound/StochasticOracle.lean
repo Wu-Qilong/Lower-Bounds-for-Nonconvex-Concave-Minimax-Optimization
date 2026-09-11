@@ -17,9 +17,9 @@ Thus the oracle is unbiased, and its exact mean-square error is
 
 `g_c^2 * (1-p) / p`.
 
-For the clipped hard instance we set
+For the clipped hard instance, matching Eq. (48) of the current paper, we set
 
-`G_N = R * L0 L * alpha * s`,
+`G_N = 2 * R * L0 L * alpha * s = 2 * ell_0 * tau_N`,
 
 and (with the zero-noise branch separated to avoid division by zero)
 
@@ -147,9 +147,13 @@ theorem bernoulliMaskMSE_eq {m N : ℕ} (g : HardSpace m N)
 
 /-! ## Paper reveal probability -/
 
-/-- The local amplitude from the v75 next-dual theorem. -/
+/-- Paper stochastic gradient bound `G_N = 2 ell_0 tau_N`, with
+`tau_N = R * alpha * s` and `ell_0 = L0 L`.  The earlier local
+next-frontier lemma proves the sharper bound without the factor `2`; we use the
+paper's uniform bound here so that the Bernoulli probability agrees exactly
+with Eq. (51). -/
 def stochasticRevealAmplitude (L alpha s : ℝ) : ℝ :=
-  R * L0 L * alpha * s
+  2 * R * L0 L * alpha * s
 
 /-- Paper Bernoulli reveal probability.  The explicit `sigma = 0` branch avoids
 undefined division while agreeing with the deterministic/noiseless oracle. -/
@@ -303,8 +307,13 @@ theorem stochasticNextDualOracle_MSE_le_sigma_sq {m n : ℕ}
     exact stochasticRevealProb_le_one G sigma
   have h1mp : 0 ≤ 1 - p := by linarith
   have hcoord : |g.ofLp c| ≤ G := by
+    have hsharp := nextDualGradient_abs_le
+      L alpha s hL halpha hs k z htok hz i r hrank
+    have hbase : 0 ≤ R * L0 L * alpha * s := by
+      unfold R L0 Csm
+      positivity
     dsimp [g, c, G, stochasticRevealAmplitude]
-    exact nextDualGradient_abs_le L alpha s hL halpha hs k z htok hz i r hrank
+    exact le_trans hsharp (by nlinarith)
   have hsq : (g.ofLp c) ^ 2 ≤ G ^ 2 := by
     have habs0 : 0 ≤ |g.ofLp c| := abs_nonneg _
     have hG0 : 0 ≤ G := le_of_lt hGpos

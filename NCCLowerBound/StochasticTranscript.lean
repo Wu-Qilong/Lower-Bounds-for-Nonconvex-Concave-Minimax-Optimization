@@ -10,15 +10,17 @@ masked oracle to the finite Bernoulli progress layer.
 There are two ingredients.
 
 1. `hardRank` is injective.  Consequently, when the current snake frontier
-   `k` is a dual rank, there is a unique hard coordinate at that rank.  If the
-   Bernoulli mask returns `false`, masking that coordinate keeps the reply
-   supported on the old prefix `k`; on a reveal it is supported on `k+1`.
-   At a non-dual rank the exact clipped gradient is supported on `k+1`.
+   `k` is a randomized dual rank (paper coordinates `y₂,…,y_N`), there is a
+   unique hard coordinate at that rank.  If the Bernoulli mask returns `false`,
+   masking that coordinate keeps the reply supported on the old prefix `k`;
+   on a reveal it is supported on `k+1`.  At every non-randomized rank
+   (including `y₁` and all primal ranks), the exact clipped gradient is returned
+   and the frontier advances deterministically.
 
 2. `stochasticFrontier` is the maximal prefix allowed by those one-step
-   support transitions.  `dualPrefixProgress` counts how many dual ranks have
-   been crossed by a prefix.  A dual rank can be crossed only on a `true`
-   Bernoulli outcome, hence pathwise
+   support transitions.  `dualPrefixProgress` counts how many randomized dual
+   ranks have been crossed by a prefix.  Such a rank can be crossed only on a
+   `true` Bernoulli outcome, hence pathwise
 
      dualPrefixProgress (stochasticFrontier omega) <= revealCount omega.
 
@@ -188,18 +190,39 @@ theorem hardRank_injective {m N : ℕ} :
 
 /-! ## Dual ranks and concrete masked support transitions -/
 
-/-- A snake rank occupied by a dual-path coordinate. -/
+/-- A snake rank occupied by an arbitrary dual-path coordinate. -/
 def IsDualRank (m N k : ℕ) : Prop :=
   ∃ c : HardCoord m N, hardRank c = k ∧ IsDualHardCoord c
 
-/-- Use one canonical classical decision procedure for dual-rank tests throughout
-this module.  This prevents the `if IsDualRank ...` definitions below from
-requiring an unresolved local `Decidable` instance. -/
+/-- A dual coordinate randomized by the stochastic oracle in the current paper.
+The first path coordinate `y₁` is deterministic; only coordinates with path
+index `j > 0` (paper indices `2, …, N`) are Bernoulli-gated. -/
+def IsRandomizedDualHardCoord {m N : ℕ} (c : HardCoord m N) : Prop :=
+  ∃ i : Fin m, ∃ j : Fin N, j.1 ≠ 0 ∧ c = hY i j
+
+/-- A snake rank occupied by one of the randomized dual coordinates
+`y₂, …, y_N`. -/
+def IsRandomizedDualRank (m N k : ℕ) : Prop :=
+  ∃ c : HardCoord m N, hardRank c = k ∧ IsRandomizedDualHardCoord c
+
+/-- Every randomized dual rank is, in particular, a dual rank. -/
+theorem isDualRank_of_isRandomizedDualRank {m N k : ℕ}
+    (h : IsRandomizedDualRank m N k) : IsDualRank m N k := by
+  rcases h with ⟨c, hrank, hrand⟩
+  rcases hrand with ⟨i, j, hj, hc⟩
+  exact ⟨c, hrank, ⟨i, j, hc⟩⟩
+
+/-- Use canonical classical decision procedures for the rank tests in this
+module. -/
 local instance instDecidableIsDualRank (m N k : ℕ) :
     Decidable (IsDualRank m N k) :=
   Classical.propDecidable _
 
-/-- Chosen dual coordinate at a dual rank. -/
+local instance instDecidableIsRandomizedDualRank (m N k : ℕ) :
+    Decidable (IsRandomizedDualRank m N k) :=
+  Classical.propDecidable _
+
+/-- Chosen dual coordinate at an arbitrary dual rank. -/
 noncomputable def dualCoordAtRank {m N k : ℕ}
     (h : IsDualRank m N k) : HardCoord m N :=
   Classical.choose h
@@ -213,6 +236,27 @@ theorem dualCoordAtRank_isDual {m N k : ℕ}
     (h : IsDualRank m N k) :
     IsDualHardCoord (dualCoordAtRank h) := by
   exact (Classical.choose_spec h).2
+
+/-- Chosen randomized dual coordinate at a Bernoulli-gated rank. -/
+noncomputable def randomizedDualCoordAtRank {m N k : ℕ}
+    (h : IsRandomizedDualRank m N k) : HardCoord m N :=
+  Classical.choose h
+
+@[simp] theorem randomizedDualCoordAtRank_rank {m N k : ℕ}
+    (h : IsRandomizedDualRank m N k) :
+    hardRank (randomizedDualCoordAtRank h) = k := by
+  exact (Classical.choose_spec h).1
+
+theorem randomizedDualCoordAtRank_isRandomizedDual {m N k : ℕ}
+    (h : IsRandomizedDualRank m N k) :
+    IsRandomizedDualHardCoord (randomizedDualCoordAtRank h) := by
+  exact (Classical.choose_spec h).2
+
+theorem randomizedDualCoordAtRank_isDual {m N k : ℕ}
+    (h : IsRandomizedDualRank m N k) :
+    IsDualHardCoord (randomizedDualCoordAtRank h) := by
+  rcases randomizedDualCoordAtRank_isRandomizedDual h with ⟨i, j, hj, hc⟩
+  exact ⟨i, j, hc⟩
 
 /-- Masking a rank-`k` coordinate cannot create support beyond `k+1`. -/
 theorem bernoulliMaskOracle_supported_succ {m N : ℕ}
@@ -249,22 +293,22 @@ theorem bernoulliMaskOracle_false_supported {m N : ℕ}
     rw [bernoulliMaskOracle_other g c d p false hdc]
     exact hg d hdnext
 
-/-- Maximal one-step support frontier: a dual rank advances only on a successful
-Bernoulli reveal; a non-dual rank advances deterministically. -/
+/-- Maximal one-step support frontier: a randomized dual rank advances only on a successful
+Bernoulli reveal; every non-randomized rank advances deterministically. -/
 noncomputable def stochasticFrontierStep (m N k : ℕ) (reveal : Bool) : ℕ :=
-  if IsDualRank m N k then
+  if IsRandomizedDualRank m N k then
     if reveal then k + 1 else k
   else
     k + 1
 
 /-- Concrete clipped stochastic reply at a given current prefix rank.  At a
-current dual rank it uses the verified v78 Bernoulli mask; otherwise it returns
+current randomized dual rank it uses the verified v78 Bernoulli mask; otherwise it returns
 the exact clipped gradient. -/
 noncomputable def stochasticRankReply {m n : ℕ}
     (L alpha s sigma : ℝ) (k : ℕ) (z : HardSpace m (n + 2))
     (reveal : Bool) : HardSpace m (n + 2) :=
-  if h : IsDualRank m (n + 2) k then
-    stochasticNextCoordOracle L alpha s sigma z (dualCoordAtRank h) reveal
+  if h : IsRandomizedDualRank m (n + 2) k then
+    stochasticNextCoordOracle L alpha s sigma z (randomizedDualCoordAtRank h) reveal
   else
     gradient (payoffHardClip (m := m) (n := n) L alpha s) z
 
@@ -278,11 +322,11 @@ theorem stochasticRankReply_supported_step {m n : ℕ}
   have hg : SupportedPrefix (k + 1)
       (gradient (payoffHardClip (m := m) (n := n) L alpha s) z) :=
     stochasticZeroChainClaim_proved m n L alpha s halpha hs k z hz
-  by_cases hd : IsDualRank m (n + 2) k
-  · let c := dualCoordAtRank hd
+  by_cases hd : IsRandomizedDualRank m (n + 2) k
+  · let c := randomizedDualCoordAtRank hd
     have hc : hardRank c = k := by
       dsimp [c]
-      exact dualCoordAtRank_rank hd
+      exact randomizedDualCoordAtRank_rank hd
     cases reveal with
     | false =>
         have hmask := bernoulliMaskOracle_false_supported
@@ -310,7 +354,7 @@ noncomputable def stochasticFrontierNat (m N : ℕ) (coin : ℕ → Bool) : ℕ 
 /-- A frontier step never moves backwards. -/
 theorem stochasticFrontierStep_ge (m N k : ℕ) (reveal : Bool) :
     k ≤ stochasticFrontierStep m N k reveal := by
-  by_cases hd : IsDualRank m N k
+  by_cases hd : IsRandomizedDualRank m N k
   · cases reveal <;> simp [stochasticFrontierStep, hd]
   · simp [stochasticFrontierStep, hd]
 
@@ -398,23 +442,23 @@ noncomputable def stochasticFrontier (m N : ℕ) : List Bool → ℕ
   | [] => 0
   | b :: xs => stochasticFrontierStep m N (stochasticFrontier m N xs) b
 
-/-- Number of dual snake ranks strictly below a prefix `k`. -/
+/-- Number of randomized dual snake ranks strictly below a prefix `k`. -/
 noncomputable def dualPrefixProgress (m N : ℕ) : ℕ → ℕ
   | 0 => 0
   | k + 1 =>
-      dualPrefixProgress m N k + if IsDualRank m N k then 1 else 0
+      dualPrefixProgress m N k + if IsRandomizedDualRank m N k then 1 else 0
 
 @[simp] theorem dualPrefixProgress_succ_dual {m N k : ℕ}
-    (h : IsDualRank m N k) :
+    (h : IsRandomizedDualRank m N k) :
     dualPrefixProgress m N (k + 1) = dualPrefixProgress m N k + 1 := by
   simp [dualPrefixProgress, h]
 
 @[simp] theorem dualPrefixProgress_succ_nodual {m N k : ℕ}
-    (h : ¬ IsDualRank m N k) :
+    (h : ¬ IsRandomizedDualRank m N k) :
     dualPrefixProgress m N (k + 1) = dualPrefixProgress m N k := by
   simp [dualPrefixProgress, h]
 
-/-- Pathwise dual progress of the maximal frontier is dominated by successful
+/-- Pathwise randomized-dual progress of the maximal frontier is dominated by successful
 Bernoulli reveals. -/
 theorem stochasticFrontier_dualProgress_le_revealCount (m N : ℕ) :
     ProgressDominatedByReveals
@@ -424,7 +468,7 @@ theorem stochasticFrontier_dualProgress_le_revealCount (m N : ℕ) :
   | nil => simp [stochasticFrontier, dualPrefixProgress, revealCount]
   | cons b xs ih =>
       change dualPrefixProgress m N (stochasticFrontier m N xs) ≤ revealCount xs at ih
-      by_cases hd : IsDualRank m N (stochasticFrontier m N xs)
+      by_cases hd : IsRandomizedDualRank m N (stochasticFrontier m N xs)
       · cases b with
         | false =>
             simpa [stochasticFrontier, stochasticFrontierStep, hd] using ih

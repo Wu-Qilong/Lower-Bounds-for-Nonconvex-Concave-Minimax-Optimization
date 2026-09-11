@@ -44,19 +44,19 @@ def relayR (t : ℝ) : ℝ :=
 def q {m : ℕ} (U : Fin (m + 1) → ℝ) (i : Fin m) : ℝ :=
   nu (U i.castSucc) * (1 - nu (U i.succ))
 
-/-- Denominator in the normalized relay map preceding (16). -/
+/-- Denominator in the normalized relay map `rho` from Eq. (13). -/
 def rhoDen {m : ℕ} (U : Fin (m + 1) → ℝ) : ℝ :=
   Real.sqrt (1 + normSq (q U))
 
-/-- Normalized relay vector `ρ`; its bound is equation (16). -/
+/-- Normalized relay vector `rho` from Eq. (13). -/
 def rho {m : ℕ} (U : Fin (m + 1) → ℝ) (i : Fin m) : ℝ :=
   q U i / rhoDen U
 
-/-- Tail residual vector `\bar r(U)` used in equation (18). -/
+/-- Tail residual vector `\bar r(U)` used in Eq. (15). -/
 def tailR {m : ℕ} (U : Fin (m + 1) → ℝ) (i : Fin m) : ℝ :=
   relayR (U i.succ)
 
-/-- Universal constants used by the current paper hard instance. -/
+/-- Concrete Lean witnesses for the universal constants left existential in the current manuscript. -/
 def R : ℝ := 4
 def eta : ℝ := 10000
 def delta : ℝ := (1 : ℝ) / 100
@@ -64,7 +64,7 @@ def Csm : ℝ := 100000
 
 def L0 (L : ℝ) : ℝ := L / Csm
 
-/-- Equation (18), written with `m = T-1`. -/
+/-- The normalized primal component `Psi0` from Eq. (15), with `m = T-1`. -/
 def Psi0 {m : ℕ}
     (U : Fin (m + 1) → ℝ) (A B : Fin m → ℝ) : ℝ :=
   - eta * U 0

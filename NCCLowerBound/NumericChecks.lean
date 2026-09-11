@@ -1,12 +1,13 @@
 import NCCLowerBound.Definitions
 
 /-!
-# Exact arithmetic checks for the current paper constants
+# Exact arithmetic checks for the Lean witness constants
 
-The current manuscript uses
-`R = 4`, `eta = 10^4`, `delta = 10^-2`, and `Csm = 10^5`.
-These kernel-level arithmetic facts isolate the numerical margins used by the
-smoothness and relay-obstruction arguments.
+The current manuscript leaves the relevant universal constants unspecified.
+This formalization retains the concrete witnesses
+`R = 4`, `eta = 10^4`, `delta = 10^-2`, and `Csm = 10^5` from the uploaded
+Lean development.  These kernel-level arithmetic facts isolate the numerical
+margins used by the smoothness and relay-obstruction arguments.
 -/
 
 set_option autoImplicit false

@@ -85,7 +85,7 @@ theorem stochasticZeroRespecting_output_supported {m n : ℕ}
 /-- Snake rank of the terminal history coordinate. -/
 def stochasticTerminalRank (m N : ℕ) : ℕ := m * (N + 3)
 
-/-- Number of dual ranks crossed before the terminal history coordinate.  The
+/-- Number of randomized dual ranks crossed before the terminal history coordinate.  The
 next parameter-closure layer will identify this quantity explicitly with the
 paper's dual-gate count. -/
 noncomputable def stochasticTerminalDualProgress (m N : ℕ) : ℕ :=
@@ -94,11 +94,11 @@ noncomputable def stochasticTerminalDualProgress (m N : ℕ) : ℕ :=
 /-- `dualPrefixProgress` never decreases at a successor step. -/
 theorem dualPrefixProgress_le_succ (m N k : ℕ) :
     dualPrefixProgress m N k ≤ dualPrefixProgress m N (k + 1) := by
-  by_cases hd : IsDualRank m N k
+  by_cases hd : IsRandomizedDualRank m N k
   · simp [dualPrefixProgress, hd]
   · simp [dualPrefixProgress, hd]
 
-/-- Monotonicity of the dual-progress counter. -/
+/-- Monotonicity of the randomized-dual-progress counter. -/
 theorem dualPrefixProgress_mono (m N : ℕ) :
     Monotone (dualPrefixProgress m N) := by
   intro a b hab

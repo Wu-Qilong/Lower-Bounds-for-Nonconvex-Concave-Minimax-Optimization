@@ -14,7 +14,7 @@ between those core theorems and the paper statements:
   already-certified smoothness/concavity/gap properties;
 * the stochastic oracle is the exact query-frontier Bernoulli oracle of the
   current manuscript: at each query it computes the actual `prog_0^pi` frontier,
-  randomizes only the next dual coordinate, and returns deterministic transitions
+  randomizes only the next dual coordinate among `y₂, …, y_N`; `y₁` is deterministic, and returns deterministic transitions
   exactly elsewhere.  The resulting full-vector conditional MSE is bounded on
   every feasible query by the clipped-frontier amplitude estimate.
 
@@ -223,7 +223,7 @@ theorem supportedPrefix_mono {m N k l : ℕ} {z : HardSpace m N}
 /-- One stochastic frontier step never exceeds one new rank. -/
 theorem stochasticFrontierStep_le_succ (m N k : ℕ) (reveal : Bool) :
     stochasticFrontierStep m N k reveal ≤ k + 1 := by
-  by_cases hd : IsDualRank m N k
+  by_cases hd : IsRandomizedDualRank m N k
   · cases reveal <;> simp [stochasticFrontierStep, hd]
   · simp [stochasticFrontierStep, hd]
 
@@ -244,16 +244,16 @@ theorem stochasticRankReply_unbiased {m n : ℕ}
       (stochasticRankReply L alpha s sigma k z true)
       (stochasticRankReply L alpha s sigma k z false) =
       gradient (payoffHardClip (m := m) (n := n) L alpha s) z := by
-  by_cases hd : IsDualRank m (n + 2) k
+  by_cases hd : IsRandomizedDualRank m (n + 2) k
   · simpa [stochasticRankReply, hd] using
       stochasticNextCoordOracle_unbiased L alpha s sigma hL halpha hs z
-        (dualCoordAtRank hd)
+        (randomizedDualCoordAtRank hd)
   · simpa [stochasticRankReply, hd] using
       (bernoulliMean_self (hardStochasticRevealProb L alpha s sigma)
         (gradient (payoffHardClip (m := m) (n := n) L alpha s) z))
 
 /-- At a feasible prefix-supported rank, the rank reply satisfies the full-vector
-MSE bound.  At a dual rank this is exactly the one-coordinate `G_N` estimate;
+MSE bound.  At a randomized dual rank this is exactly the one-coordinate `G_N` estimate;
 at a non-dual rank the reply is deterministic. -/
 theorem stochasticRankReply_MSE_le_sigma_sq {m n : ℕ}
     (L alpha s Dy sigma : ℝ)
@@ -267,28 +267,28 @@ theorem stochasticRankReply_MSE_le_sigma_sq {m n : ℕ}
       (1 - p) * ‖stochasticRankReply L alpha s sigma k z false - g‖ ^ 2
       ≤ sigma ^ 2 := by
   dsimp
-  by_cases hd : IsDualRank m (n + 2) k
-  · rcases dualCoordAtRank_isDual hd with ⟨i, r, hc⟩
+  by_cases hd : IsRandomizedDualRank m (n + 2) k
+  · rcases randomizedDualCoordAtRank_isDual hd with ⟨i, r, hc⟩
     have hrank : hardRank (hY (m := m) (N := n + 2) i r) = k := by
       rw [← hc]
-      exact dualCoordAtRank_rank hd
+      exact randomizedDualCoordAtRank_rank hd
     have hmse := stochasticNextDualOracle_MSE_le_sigma_sq
       L alpha s sigma hL halpha hs hsigma k z hzfeas.1 hzprefix i r hrank
     simpa [stochasticRankReply, hd, hc] using hmse
   · have hs2 : 0 ≤ sigma ^ 2 := sq_nonneg sigma
     simpa [stochasticRankReply, hd] using hs2
 
-/-- Paper-facing Bernoulli reply from Lemma 5.2.  The randomized rank is
+/-- Paper-facing Bernoulli reply from Section 5.2.  The randomized rank is
 computed from the *actual query* `z`, exactly as
 `r_t := prog_0^pi(z_t)` in the manuscript.  If the next rank is non-dual (or
 there is no dual coordinate at that rank), `stochasticRankReply` returns the
-exact gradient; at a dual frontier it masks only that scalar coordinate. -/
+exact gradient; at a randomized dual frontier it masks only that scalar coordinate.  In particular, `y₁` and all primal coordinates are returned exactly. -/
 noncomputable def paperStochasticReply {m n : ℕ}
     (L alpha s sigma : ℝ) (z : HardSpace m (n + 2))
     (reveal : Bool) : HardSpace m (n + 2) :=
   stochasticRankReply L alpha s sigma (paperQueryProgress z) z reveal
 
-/-- Full stochastic first-order reply from Definitions 2.6 and Lemma 5.2:
+/-- Full stochastic first-order reply from Definitions 2.6 and Section 5.2:
 the function value is exact and only the joint gradient is randomized. -/
 noncomputable def paperStochasticFirstOrderReply {m n : ℕ}
     (L alpha s sigma : ℝ) (z : HardSpace m (n + 2)) (reveal : Bool) :
@@ -306,7 +306,7 @@ noncomputable def paperStochasticFirstOrderReply {m n : ℕ}
     (paperStochasticFirstOrderReply L alpha s sigma z reveal).2 =
       paperStochasticReply L alpha s sigma z reveal := rfl
 
-/-- Lemma 5.2, conditional-unbiasedness part, represented by the exact
+/-- Section 5.2, conditional-unbiasedness part, represented by the exact
 finite two-point Bernoulli conditional mean at a fixed query. -/
 theorem paperStochasticReply_unbiased {m n : ℕ}
     (L alpha s sigma : ℝ) (hL : 0 < L) (halpha : 0 < alpha) (hs : 0 < s)
@@ -319,7 +319,7 @@ theorem paperStochasticReply_unbiased {m n : ℕ}
   exact stochasticRankReply_unbiased
     L alpha s sigma hL halpha hs (paperQueryProgress z) z
 
-/-- Lemma 5.2, full-vector conditional MSE bound.  The only stochastic error
+/-- Section 5.2, full-vector conditional MSE bound.  The only stochastic error
 is the actual query's next dual frontier coordinate; Lemma 5.1 supplies the
 `G_N` bound through `stochasticRankReply_MSE_le_sigma_sq`. -/
 theorem paperStochasticReply_MSE_le_sigma_sq {m n : ℕ}
@@ -379,7 +379,7 @@ theorem paperStochasticReply_supported_frontierStep {m n : ℕ}
 
 /-- Standard bounded-variance stochastic-oracle condition on every feasible
 query, with no extra frontier-state argument.  This matches Definition 2.6 and
-Lemma 5.2 of the current paper. -/
+Section 5.2 of the current paper. -/
 def PaperStochasticOracleOnFeasible (m n : ℕ)
     (L alpha s Dy sigma : ℝ) : Prop :=
   0 ≤ sigma ∧
@@ -696,7 +696,7 @@ theorem paperAdaptiveStochasticZR_output_supported
   exact hsupp
 
 /-- Paper Lemma 5.3 (dual-gate progress), in the finite-Bernoulli
-representation.  Under the budget `q p_N <= mN/4`, every adaptive
+representation.  Under the budget `q p_N <= m(N-1)/4`, every adaptive
 zero-respecting output of the exact query-frontier oracle has terminal history
 coordinate zero with probability at least `3/4`. -/
 theorem paperDualGateProgress_hidden_prob_ge_three_quarters
@@ -705,7 +705,7 @@ theorem paperDualGateProgress_hidden_prob_ge_three_quarters
     (alg : PaperAdaptiveStochasticZRAlgorithm m n q L alpha s Dy sigma)
     (hbudget :
       (q : ℝ) * hardStochasticRevealProb L alpha s sigma ≤
-        ((m * (n + 2) : ℕ) : ℝ) / 4) :
+        ((m * (n + 1) : ℕ) : ℝ) / 4) :
     (3 : ℝ) / 4 ≤
       bernoulliEventProb q (hardStochasticRevealProb L alpha s sigma)
         (fun xs => primalU (alg.output xs) (Fin.last m) = 0) := by
@@ -714,7 +714,7 @@ theorem paperDualGateProgress_hidden_prob_ge_three_quarters
   have hM : 0 < M := by
     dsimp [M]
     rw [stochasticTerminalDualProgress_eq_mul]
-    have hN : 0 < n + 2 := by omega
+    have hNm1 : 0 < (n + 2) - 1 := by omega
     positivity
   have hbudgetM : (q : ℝ) * pReveal ≤ (M : ℝ) / 4 := by
     dsimp [pReveal, M]
@@ -775,7 +775,7 @@ theorem paperRandomizedDualGateProgress_hidden_prob_ge_three_quarters
     (seed : Seed)
     (hbudget :
       (q : ℝ) * hardStochasticRevealProb L alpha s sigma ≤
-        ((m * (n + 2) : ℕ) : ℝ) / 4) :
+        ((m * (n + 1) : ℕ) : ℝ) / 4) :
     (3 : ℝ) / 4 ≤
       bernoulliEventProb q (hardStochasticRevealProb L alpha s sigma)
         (fun xs => primalU (alg.output seed xs) (Fin.last m) = 0) := by

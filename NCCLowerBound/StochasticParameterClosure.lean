@@ -7,8 +7,8 @@ import Mathlib.Algebra.Order.Floor.Semiring
 # Stochastic parameter closure
 
 This layer closes the arithmetic part of the stochastic zero-respecting lower
-bound.  It identifies the terminal dual progress with the exact number `m*N`
-of clipped dual gates, reuses the deterministic floor certificate at target
+bound.  It identifies the terminal dual progress with the exact number `m*(N-1)`
+of randomized clipped dual gates, reuses the deterministic floor certificate at target
 `(4/3)*eps` (which exactly matches the current stochastic physical scale), and proves that the
 explicit additive query threshold
 
@@ -29,60 +29,108 @@ noncomputable section
 
 open scoped BigOperators
 
-/-- Use one canonical classical decision procedure for dual-rank predicates in
-this downstream parameter module. -/
-local instance instDecidableIsDualRankParam (m N k : ℕ) :
-    Decidable (IsDualRank m N k) :=
+/-- Use one canonical classical decision procedure for randomized-dual-rank
+predicates in this downstream parameter module. -/
+local instance instDecidableIsRandomizedDualRankParam (m N k : ℕ) :
+    Decidable (IsRandomizedDualRank m N k) :=
   Classical.propDecidable _
 
-/-! ## Exact terminal dual-gate count -/
+/-! ## Exact terminal randomized-dual-gate count -/
 
-/-- Rank of one dual coordinate, viewed as a map on `(block,path-index)` pairs. -/
-def dualRankMap (m N : ℕ) (ir : Fin m × Fin N) : ℕ :=
-  hardRank (hY (m := m) (N := N) ir.1 ir.2)
+/-- Nonzero path indices.  Lean indices start at zero, so this is exactly the
+paper's randomized set `j = 2, ..., N`. -/
+abbrev NonzeroPathIndex (N : ℕ) := {j : Fin N // j.1 ≠ 0}
 
-/-- Distinct dual coordinates have distinct snake ranks. -/
+/-- The nonzero path indices are in bijection with `Fin (N-1)`. -/
+def nonzeroPathIndexEquiv (N : ℕ) (hN : 0 < N) :
+    NonzeroPathIndex N ≃ Fin (N - 1) where
+  toFun j := ⟨j.1.1 - 1, by
+    have hjlt : j.1.1 < N := j.1.2
+    have hjpos : 0 < j.1.1 := Nat.pos_of_ne_zero j.2
+    omega⟩
+  invFun r := ⟨⟨r.1 + 1, by
+    have hrlt : r.1 < N - 1 := r.2
+    have hN1 : 1 ≤ N := Nat.succ_le_iff.mpr hN
+    calc
+      r.1 + 1 < (N - 1) + 1 := Nat.add_lt_add_right hrlt 1
+      _ = N := Nat.sub_add_cancel hN1⟩, Nat.succ_ne_zero r.1⟩
+  left_inv j := by
+    apply Subtype.ext
+    apply Fin.ext
+    have hjpos : 0 < j.1.1 := Nat.pos_of_ne_zero j.2
+    change j.1.1 - 1 + 1 = j.1.1
+    omega
+  right_inv r := by
+    apply Fin.ext
+    change (r.1 + 1) - 1 = r.1
+    omega
+
+/-- There are exactly `N-1` randomized path indices. -/
+@[simp] theorem nonzeroPathIndex_card (N : ℕ) :
+    Fintype.card (NonzeroPathIndex N) = N - 1 := by
+  by_cases hN0 : N = 0
+  · subst N
+    simp [NonzeroPathIndex]
+  · have hN : 0 < N := Nat.pos_of_ne_zero hN0
+    simpa using Fintype.card_congr (nonzeroPathIndexEquiv N hN)
+
+/-- Rank of one randomized dual coordinate, viewed as a map on
+`(block,nonzero-path-index)` pairs. -/
+def dualRankMap (m N : ℕ) (ir : Fin m × NonzeroPathIndex N) : ℕ :=
+  hardRank (hY (m := m) (N := N) ir.1 ir.2.1)
+
+/-- Distinct randomized dual coordinates have distinct snake ranks. -/
 theorem dualRankMap_injective (m N : ℕ) :
     Function.Injective (dualRankMap m N) := by
   intro a b hab
-  have hc : hY (m := m) (N := N) a.1 a.2 = hY b.1 b.2 :=
+  have hc : hY (m := m) (N := N) a.1 a.2.1 = hY b.1 b.2.1 :=
     hardRank_injective hab
-  change Sum.inr (Sum.inr (Sum.inl (a.1, a.2))) =
-      Sum.inr (Sum.inr (Sum.inl (b.1, b.2))) at hc
-  simpa using hc
+  change Sum.inr (Sum.inr (Sum.inl (a.1, a.2.1))) =
+      Sum.inr (Sum.inr (Sum.inl (b.1, b.2.1))) at hc
+  have hp : (a.1, a.2.1) = (b.1, b.2.1) := by simpa using hc
+  apply Prod.ext
+  · exact congrArg (fun p : Fin m × Fin N => p.1) hp
+  · apply Subtype.ext
+    exact congrArg (fun p : Fin m × Fin N => p.2) hp
 
-/-- Embedding of all dual gates into their public snake ranks. -/
-def dualRankEmbedding (m N : ℕ) : (Fin m × Fin N) ↪ ℕ where
+/-- Embedding of all randomized dual gates into their public snake ranks. -/
+def dualRankEmbedding (m N : ℕ) : (Fin m × NonzeroPathIndex N) ↪ ℕ where
   toFun := dualRankMap m N
   inj' := dualRankMap_injective m N
 
-/-- Finset of all ranks occupied by dual path coordinates. -/
+/-- Finset of all ranks occupied by randomized dual path coordinates. -/
 def dualRankFinset (m N : ℕ) : Finset ℕ :=
   Finset.univ.map (dualRankEmbedding m N)
 
-/-- Membership in the explicit rank finset is exactly the `IsDualRank` predicate. -/
+/-- Membership in the explicit rank finset is exactly the randomized-dual-rank
+predicate. -/
 theorem mem_dualRankFinset_iff {m N k : ℕ} :
-    k ∈ dualRankFinset m N ↔ IsDualRank m N k := by
+    k ∈ dualRankFinset m N ↔ IsRandomizedDualRank m N k := by
   constructor
   · intro hk
     rcases Finset.mem_map.mp hk with ⟨ir, hir, hirk⟩
-    refine ⟨hY (m := m) (N := N) ir.1 ir.2, ?_, ?_⟩
+    refine ⟨hY (m := m) (N := N) ir.1 ir.2.1, ?_, ?_⟩
     · simpa [dualRankEmbedding, dualRankMap] using hirk
-    · exact ⟨ir.1, ir.2, rfl⟩
-  · rintro ⟨c, hck, ⟨i, r, rfl⟩⟩
+    · exact ⟨ir.1, ir.2.1, ir.2.2, rfl⟩
+  · rintro ⟨c, hck, ⟨i, r, hr0, rfl⟩⟩
     apply Finset.mem_map.mpr
-    refine ⟨(i, r), Finset.mem_univ _, ?_⟩
+    refine ⟨(i, ⟨r, hr0⟩), Finset.mem_univ _, ?_⟩
     simpa [dualRankEmbedding, dualRankMap] using hck
 
-/-- There are exactly `m*N` dual ranks. -/
+/-- There are exactly `m*(N-1)` Bernoulli-gated dual ranks. -/
 @[simp] theorem dualRankFinset_card (m N : ℕ) :
-    (dualRankFinset m N).card = m * N := by
-  simp [dualRankFinset]
+    (dualRankFinset m N).card = m * (N - 1) := by
+  unfold dualRankFinset
+  rw [Finset.card_map]
+  change Fintype.card (Fin m × NonzeroPathIndex N) = m * (N - 1)
+  rw [Fintype.card_prod, nonzeroPathIndex_card]
+  simp
 
-/-- Every dual rank occurs strictly before the terminal history coordinate. -/
-theorem dualRank_lt_terminal {m N k : ℕ} (hk : IsDualRank m N k) :
+/-- Every randomized dual rank occurs strictly before the terminal history
+coordinate. -/
+theorem dualRank_lt_terminal {m N k : ℕ} (hk : IsRandomizedDualRank m N k) :
     k < stochasticTerminalRank m N := by
-  rcases hk with ⟨c, rfl, ⟨i, r, rfl⟩⟩
+  rcases hk with ⟨c, rfl, ⟨i, r, hr0, rfl⟩⟩
   have hoff : 2 + r.1 < N + 3 := by
     omega
   have hi : i.1 + 1 ≤ m := by
@@ -99,11 +147,11 @@ theorem dualRank_lt_terminal {m N k : ℕ} (hk : IsDualRank m N k) :
       simp [Nat.add_mul]
     _ ≤ m * (N + 3) := hmul
 
-/-- The recursive dual-prefix counter is the cardinality of the dual ranks
-strictly below the prefix cutoff. -/
+/-- The recursive randomized-dual-prefix counter is the cardinality of the
+randomized dual ranks strictly below the prefix cutoff. -/
 theorem dualPrefixProgress_eq_filter_card (m N k : ℕ) :
     dualPrefixProgress m N k =
-      ((Finset.range k).filter (fun j => IsDualRank m N j)).card := by
+      ((Finset.range k).filter (fun j => IsRandomizedDualRank m N j)).card := by
   classical
   induction k with
   | zero => simp [dualPrefixProgress]
@@ -113,10 +161,10 @@ theorem dualPrefixProgress_eq_filter_card (m N k : ℕ) :
         simp
         omega
       rw [hrange]
-      by_cases hd : IsDualRank m N k
+      by_cases hd : IsRandomizedDualRank m N k
       · have hfilter :
-            (insert k (Finset.range k)).filter (fun j => IsDualRank m N j) =
-              insert k ((Finset.range k).filter (fun j => IsDualRank m N j)) := by
+            (insert k (Finset.range k)).filter (fun j => IsRandomizedDualRank m N j) =
+              insert k ((Finset.range k).filter (fun j => IsRandomizedDualRank m N j)) := by
           ext j
           by_cases hj : j = k
           · subst j
@@ -124,13 +172,13 @@ theorem dualPrefixProgress_eq_filter_card (m N k : ℕ) :
           · simp [hj]
         rw [hfilter]
         have hknot :
-            k ∉ (Finset.range k).filter (fun j => IsDualRank m N j) := by
+            k ∉ (Finset.range k).filter (fun j => IsRandomizedDualRank m N j) := by
           simp
         rw [Finset.card_insert_of_notMem hknot]
         simp [dualPrefixProgress, ih, hd, Nat.add_comm]
       · have hfilter :
-            (insert k (Finset.range k)).filter (fun j => IsDualRank m N j) =
-              (Finset.range k).filter (fun j => IsDualRank m N j) := by
+            (insert k (Finset.range k)).filter (fun j => IsRandomizedDualRank m N j) =
+              (Finset.range k).filter (fun j => IsRandomizedDualRank m N j) := by
           ext j
           by_cases hj : j = k
           · subst j
@@ -139,27 +187,28 @@ theorem dualPrefixProgress_eq_filter_card (m N k : ℕ) :
         rw [hfilter]
         simp [dualPrefixProgress, ih, hd]
 
-/-- At the terminal history rank, the filtered set of crossed dual ranks is
-exactly the full explicit dual-rank finset. -/
+/-- At the terminal history rank, the filtered set of crossed randomized dual
+ranks is exactly the full explicit randomized-dual-rank finset. -/
 theorem terminal_dual_filter_eq (m N : ℕ) :
     (Finset.range (stochasticTerminalRank m N)).filter
-        (fun j => IsDualRank m N j) = dualRankFinset m N := by
+        (fun j => IsRandomizedDualRank m N j) = dualRankFinset m N := by
   classical
   apply Finset.ext
   intro k
   constructor
   · intro hk
-    have hd : IsDualRank m N k := (Finset.mem_filter.mp hk).2
+    have hd : IsRandomizedDualRank m N k := (Finset.mem_filter.mp hk).2
     exact mem_dualRankFinset_iff.mpr hd
   · intro hk
-    have hd : IsDualRank m N k := mem_dualRankFinset_iff.mp hk
+    have hd : IsRandomizedDualRank m N k := mem_dualRankFinset_iff.mp hk
     apply Finset.mem_filter.mpr
     exact ⟨Finset.mem_range.mpr (dualRank_lt_terminal hd), hd⟩
 
-/-- Exact identification promised by the v86 stationarity layer:
-`stochasticTerminalDualProgress = m*N`. -/
+/-- Exact identification used by the stationarity layer.  There are `N-1`
+randomized coordinates per dual block, exactly as in Eq. (52) of the current
+paper. -/
 @[simp] theorem stochasticTerminalDualProgress_eq_mul (m N : ℕ) :
-    stochasticTerminalDualProgress m N = m * N := by
+    stochasticTerminalDualProgress m N = m * (N - 1) := by
   unfold stochasticTerminalDualProgress
   rw [dualPrefixProgress_eq_filter_card, terminal_dual_filter_eq]
   exact dualRankFinset_card m N
@@ -340,14 +389,15 @@ theorem stoch_parameter_initial_gap_le {m n : ℕ}
 
 /-- Lower-bound coefficient for the number of dual gates at the current
 `(4/3)eps` deterministic target. -/
-def cGateStochZR : ℝ := (27 / 64 : ℝ) * c0DetZR
+def cGateStochZR : ℝ := (27 / 128 : ℝ) * c0DetZR
 
 /-- Coefficient in the current lower bound `N >= cN * L*D_y/eps`. -/
 def cNStochZR : ℝ := 3 * delta / (128 * R * Csm)
 
-/-- Exact squared next-coordinate amplitude coefficient:
-`G^2 * N = cG * eps^2` at `s = 8 eps/(3 delta L0)`. -/
-def cGStochZR : ℝ := 64 * R ^ 2 / (9 * delta ^ 2)
+/-- Exact squared paper-amplitude coefficient.  With
+`G_N = 2 R L0 alpha s`, we have `G_N^2 * N = cG * eps^2` at
+`s = 8 eps/(3 delta L0)`. -/
+def cGStochZR : ℝ := 256 * R ^ 2 / (9 * delta ^ 2)
 
 /-- Deterministic part of the final additive stochastic query constant. -/
 def c0StochDet : ℝ := cGateStochZR / 8
@@ -379,14 +429,17 @@ def c0StochNoise : ℝ :=
   have hden : 0 < 8 * cGStochZR := mul_pos (by norm_num) cGStochZR_pos
   exact div_pos hnum hden
 
-/-- The parameter certificate provides `m*N` stochastic dual gates of order
-`L^2 D_y Delta / eps^3`. -/
+/-- The parameter certificate provides `m*(N-1)` randomized stochastic dual
+gates of order `L^2 D_y Delta / eps^3`.  The extra factor `1/2` relative to
+the previous all-dual count comes from `N-1 ≥ N/2` for the paper regime
+`N ≥ 2`. -/
 theorem stoch_parameter_gate_lower {m N : ℕ}
     {L alpha s Dy Delta eps : ℝ}
     (hc : StochParameterCertificate m N L alpha s Dy Delta eps) :
-    cGateStochZR * L ^ 2 * Dy * Delta / eps ^ 3 ≤ ((m * N : ℕ) : ℝ) := by
+    cGateStochZR * L ^ 2 * Dy * Delta / eps ^ 3 ≤
+      ((m * (N - 1) : ℕ) : ℝ) := by
   have heps : 0 < eps := by linarith [hc.det.heps]
-  have hTnat := hc.det.hT
+  have hTnat : 2 ≤ m + 1 := hc.det.hT
   have hmNat : 1 ≤ m := by omega
   have hTlower' : detAT L Delta (((4 / 3 : ℝ) * eps)) / 2 ≤ (m : ℝ) + 1 := by
     simpa only [Nat.cast_add, Nat.cast_one] using hc.det.hTlower
@@ -398,28 +451,52 @@ theorem stoch_parameter_gate_lower {m N : ℕ}
     linarith
   have hmhalf : detAT L Delta (((4 / 3 : ℝ) * eps)) / 4 ≤ (m : ℝ) :=
     le_trans hquarter hhalf_m
-  have hTc : (2 : ℝ) ≤ ((m + 1 : ℕ) : ℝ) := by exact_mod_cast hc.det.hT
-  have hATpos : 0 < detAT L Delta (((4 / 3 : ℝ) * eps)) :=
-    lt_of_lt_of_le (by norm_num) (le_trans hTc hc.det.hTupper)
-  have hAT0 : 0 ≤ detAT L Delta (((4 / 3 : ℝ) * eps)) / 4 := by positivity
+  have hNtwoReal : (2 : ℝ) ≤ (N : ℝ) := by
+    exact_mod_cast hc.det.hN
+  have hNquarter :
+      detAN L Dy (((4 / 3 : ℝ) * eps)) / 4 ≤ (N : ℝ) / 2 := by
+    linarith [hc.det.hNlower]
+  have hNnat : 2 ≤ N := hc.det.hN
+  have hNge1 : 1 ≤ N := by omega
+  have hNsubCast : (((N - 1 : ℕ) : ℝ)) = (N : ℝ) - 1 := by
+    rw [Nat.cast_sub hNge1]
+    norm_num
+  have hNhalf_sub : (N : ℝ) / 2 ≤ ((N - 1 : ℕ) : ℝ) := by
+    rw [hNsubCast]
+    linarith
+  have hANquarter :
+      detAN L Dy (((4 / 3 : ℝ) * eps)) / 4 ≤ ((N - 1 : ℕ) : ℝ) :=
+    le_trans hNquarter hNhalf_sub
+  have hAT0 : 0 ≤ detAT L Delta (((4 / 3 : ℝ) * eps)) / 4 := by
+    have hTc : (2 : ℝ) ≤ ((m + 1 : ℕ) : ℝ) := by exact_mod_cast hc.det.hT
+    have hATpos : 0 < detAT L Delta (((4 / 3 : ℝ) * eps)) :=
+      lt_of_lt_of_le (by norm_num) (le_trans hTc hc.det.hTupper)
+    positivity
+  have hNm10 : 0 ≤ ((N - 1 : ℕ) : ℝ) := by positivity
   have hprod1 :
-      (detAT L Delta (((4 / 3 : ℝ) * eps)) / 4) * (detAN L Dy (((4 / 3 : ℝ) * eps)) / 2) ≤
-        (detAT L Delta (((4 / 3 : ℝ) * eps)) / 4) * (N : ℝ) :=
-    mul_le_mul_of_nonneg_left hc.det.hNlower hAT0
-  have hN0 : 0 ≤ (N : ℝ) := by positivity
+      (detAT L Delta (((4 / 3 : ℝ) * eps)) / 4) *
+          (detAN L Dy (((4 / 3 : ℝ) * eps)) / 4) ≤
+        (detAT L Delta (((4 / 3 : ℝ) * eps)) / 4) * ((N - 1 : ℕ) : ℝ) :=
+    mul_le_mul_of_nonneg_left hANquarter hAT0
   have hprod2 :
-      (detAT L Delta (((4 / 3 : ℝ) * eps)) / 4) * (N : ℝ) ≤ (m : ℝ) * (N : ℝ) :=
-    mul_le_mul_of_nonneg_right hmhalf hN0
+      (detAT L Delta (((4 / 3 : ℝ) * eps)) / 4) * ((N - 1 : ℕ) : ℝ) ≤
+        (m : ℝ) * ((N - 1 : ℕ) : ℝ) :=
+    mul_le_mul_of_nonneg_right hmhalf hNm10
   have hid := detAT_detAN_product L Dy Delta (((4 / 3 : ℝ) * eps)) (by positivity)
   calc
     cGateStochZR * L ^ 2 * Dy * Delta / eps ^ 3 =
-        c0DetZR * L ^ 2 * Dy * Delta / (((4 / 3 : ℝ) * eps)) ^ 3 := by
-          unfold cGateStochZR
-          field_simp [ne_of_gt heps]
-          ring
-    _ = (detAT L Delta (((4 / 3 : ℝ) * eps)) / 4) * (detAN L Dy (((4 / 3 : ℝ) * eps)) / 2) := hid.symm
-    _ ≤ (m : ℝ) * (N : ℝ) := le_trans hprod1 hprod2
-    _ = ((m * N : ℕ) : ℝ) := by push_cast; ring
+        (1 / 2 : ℝ) *
+          (c0DetZR * L ^ 2 * Dy * Delta / (((4 / 3 : ℝ) * eps)) ^ 3) := by
+            unfold cGateStochZR
+            field_simp [ne_of_gt heps]
+            ring
+    _ = (1 / 2 : ℝ) *
+          ((detAT L Delta (((4 / 3 : ℝ) * eps)) / 4) *
+            (detAN L Dy (((4 / 3 : ℝ) * eps)) / 2)) := by rw [← hid]
+    _ = (detAT L Delta (((4 / 3 : ℝ) * eps)) / 4) *
+          (detAN L Dy (((4 / 3 : ℝ) * eps)) / 4) := by ring
+    _ ≤ (m : ℝ) * ((N - 1 : ℕ) : ℝ) := le_trans hprod1 hprod2
+    _ = ((m * (N - 1) : ℕ) : ℝ) := by push_cast; ring
 
 /-- The stochastic floor/certificate gives the needed explicit lower bound on
 `N`. -/
@@ -449,7 +526,7 @@ theorem stoch_revealAmplitude_sq_mul_N {m N : ℕ}
     exact div_ne_zero (ne_of_gt hc.det.hL) hC
   have hδ : delta ≠ 0 := by norm_num [delta]
   rw [show stochasticRevealAmplitude L alpha s ^ 2 * (N : ℝ) =
-      R ^ 2 * (L0 L) ^ 2 * alpha ^ 2 * s ^ 2 * (N : ℝ) by
+      4 * R ^ 2 * (L0 L) ^ 2 * alpha ^ 2 * s ^ 2 * (N : ℝ) by
         unfold stochasticRevealAmplitude
         ring]
   rw [hc.det.halpha, hc.det.hscale]
@@ -476,14 +553,14 @@ theorem stochasticRevealProb_mul_sigma_sq_le_sq (G sigma : ℝ) :
       _ = G ^ 2 := by field_simp [ne_of_gt hs2]
 
 /-- The additive paper-scale query threshold already implies the v86 Bernoulli
-budget `q*p <= m*N/4`. -/
+budget `q*p <= m*(N-1)/4`. -/
 theorem stoch_additive_budget_times_revealProb_le_gate_quarter {m N : ℕ}
     {L alpha s Dy Delta sigma eps : ℝ}
     (hc : StochParameterCertificate m N L alpha s Dy Delta eps) :
     let A := L ^ 2 * Dy * Delta / eps ^ 3
     let B := L ^ 3 * Dy ^ 2 * Delta * sigma ^ 2 / eps ^ 6
     let p := hardStochasticRevealProb L alpha s sigma
-    (c0StochDet * A + c0StochNoise * B) * p ≤ ((m * N : ℕ) : ℝ) / 4 := by
+    (c0StochDet * A + c0StochNoise * B) * p ≤ ((m * (N - 1) : ℕ) : ℝ) / 4 := by
   dsimp
   let A : ℝ := L ^ 2 * Dy * Delta / eps ^ 3
   let B : ℝ := L ^ 3 * Dy ^ 2 * Delta * sigma ^ 2 / eps ^ 6
@@ -513,20 +590,20 @@ theorem stoch_additive_budget_times_revealProb_le_gate_quarter {m N : ℕ}
   have hp1 : p ≤ 1 := by
     dsimp [p, hardStochasticRevealProb]
     exact stochasticRevealProb_le_one G sigma
-  have hgate : cGateStochZR * A ≤ ((m * N : ℕ) : ℝ) := by
+  have hgate : cGateStochZR * A ≤ ((m * (N - 1) : ℕ) : ℝ) := by
     have hgate0 := stoch_parameter_gate_lower hc
     dsimp [A]
     convert hgate0 using 1 <;> ring
   have hdetScaled : cGateStochZR * A * p ≤ cGateStochZR * A := by
     simpa using (mul_le_mul_of_nonneg_left hp1
       (mul_nonneg (le_of_lt cGateStochZR_pos) hA0))
-  have hdet : c0StochDet * A * p ≤ ((m * N : ℕ) : ℝ) / 8 := by
+  have hdet : c0StochDet * A * p ≤ ((m * (N - 1) : ℕ) : ℝ) / 8 := by
     calc
       c0StochDet * A * p = (cGateStochZR * A * p) / 8 := by
         unfold c0StochDet
         ring
       _ ≤ (cGateStochZR * A) / 8 := by linarith
-      _ ≤ ((m * N : ℕ) : ℝ) / 8 := by linarith
+      _ ≤ ((m * (N - 1) : ℕ) : ℝ) / 8 := by linarith
   have hpsigma : p * sigma ^ 2 ≤ G ^ 2 := by
     dsimp [p, G, hardStochasticRevealProb]
     exact stochasticRevealProb_mul_sigma_sq_le_sq
@@ -584,7 +661,7 @@ theorem stoch_additive_budget_times_revealProb_le_gate_quarter {m N : ℕ}
     exact div_nonneg (le_of_lt cGateStochZR_pos)
       (le_of_lt (mul_pos (by norm_num) cGStochZR_pos))
   have hnoiseMul := mul_le_mul_of_nonneg_left hnoiseCore hfac0
-  have hnoise : c0StochNoise * B * p ≤ ((m * N : ℕ) : ℝ) / 8 := by
+  have hnoise : c0StochNoise * B * p ≤ ((m * (N - 1) : ℕ) : ℝ) / 8 := by
     calc
       c0StochNoise * B * p =
           (cGateStochZR / (8 * cGStochZR)) * (cNStochZR * B * p) := by
@@ -593,13 +670,13 @@ theorem stoch_additive_budget_times_revealProb_le_gate_quarter {m N : ℕ}
       _ ≤ (cGateStochZR / (8 * cGStochZR)) * (cGStochZR * A) := hnoiseMul
       _ = (cGateStochZR * A) / 8 := by
         field_simp [ne_of_gt cGStochZR_pos] <;> ring
-      _ ≤ ((m * N : ℕ) : ℝ) / 8 := by linarith
+      _ ≤ ((m * (N - 1) : ℕ) : ℝ) / 8 := by linarith
   calc
     (c0StochDet * A + c0StochNoise * B) * p =
         c0StochDet * A * p + c0StochNoise * B * p := by ring
-    _ ≤ ((m * N : ℕ) : ℝ) / 8 + ((m * N : ℕ) : ℝ) / 8 :=
+    _ ≤ ((m * (N - 1) : ℕ) : ℝ) / 8 + ((m * (N - 1) : ℕ) : ℝ) / 8 :=
       add_le_add hdet hnoise
-    _ = ((m * N : ℕ) : ℝ) / 4 := by ring
+    _ = ((m * (N - 1) : ℕ) : ℝ) / 4 := by ring
 
 /-- Query-bound form used directly by the expected-stationarity theorem. -/
 theorem stoch_query_bound_implies_budget {m N q : ℕ}
@@ -627,10 +704,10 @@ theorem stoch_query_bound_implies_budget {m N q : ℕ}
   have hbudget := stoch_additive_budget_times_revealProb_le_gate_quarter
     (m := m) (N := N) (sigma := sigma) hc
   have hbudget' :
-      (c0StochDet * A + c0StochNoise * B) * p ≤ ((m * N : ℕ) : ℝ) / 4 := by
+      (c0StochDet * A + c0StochNoise * B) * p ≤ ((m * (N - 1) : ℕ) : ℝ) / 4 := by
     dsimp [A, B, p]
     convert hbudget using 1 <;> ring
-  have hqbudget : (q : ℝ) * p < ((m * N : ℕ) : ℝ) / 4 :=
+  have hqbudget : (q : ℝ) * p < ((m * (N - 1) : ℕ) : ℝ) / 4 :=
     lt_of_lt_of_le hmul hbudget'
   rw [stochasticTerminalDualProgress_eq_mul]
   simpa [p] using hqbudget
@@ -668,7 +745,7 @@ theorem stochastic_expected_moreau_gt_eps_of_parameter_certificate {m n q : ℕ}
     rw [stochasticTerminalDualProgress_eq_mul]
     have hT := hc.det.hT
     have hm : 0 < m := by omega
-    have hN : 0 < n + 2 := by omega
+    have hNm1 : 0 < (n + 2) - 1 := by omega
     positivity
   have hbudget := stoch_query_bound_implies_budget
     (m := m) (N := n + 2) (q := q) (sigma := sigma) hc hq
