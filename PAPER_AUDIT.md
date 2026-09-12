@@ -1,63 +1,92 @@
-# Current Manuscript Alignment Audit
+# Manuscript-to-Lean alignment audit
 
-Audited manuscript title: *Lower Bounds for Nonconvex–Concave Minimax Optimization*.
+This document records the mathematical correspondence between the manuscript *Lower Bounds for Nonconvex-Concave Minimax Optimization* and the Lean formalization in this repository.
 
-Alignment source used for this release:
+## Deterministic construction
 
-```text
-Lower_Bounds_for_Nonconvex_Concave_Minimax_Optimization (26).pdf
-SHA-256: e9ae6bc4fb58329ce3bf6306d3294cb9e0f5ddc9aef339db309883b68b61430c
-```
+The deterministic proof layer formalizes the manuscript construction based on:
 
-The manuscript file is not distributed in this repository.
+- normalized primal variables `(u,a,b)` and the relay component `Psi0`;
+- path blocks with endpoints `(a_i,b_i)` and dual coordinates `y_1^(i),...,y_N^(i)`;
+- the joint snake ordering `u_i -> a_i -> y_1^(i) -> ... -> y_N^(i) -> b_i -> u_(i+1)`;
+- the exact dual maximizer and primal value-function identity;
+- dimension-free smoothness, deterministic zero-chain structure, normalized stationarity obstruction, and Moreau obstruction;
+- deterministic parameter closure and both primal-value-gap and primal-dual-gap formulations.
 
-## Current construction and notation
-
-The release reflects the manuscript's corrected domains:
-
-- `Psi0` and `Psi` depend only on the normalized primal variables `(u,a,b)`;
-- one deterministic/clipped path block has scalar endpoints `(a,b)` and a dual vector in `R^N`;
-- the full payoff uses the joint primal-dual variable;
-- the joint chain is ordered as `u_i -> a_i -> y_1^(i) -> ... -> y_N^(i) -> b_i -> u_(i+1)`;
-- the terminal history coordinate is `u_T`, and the number of dual ranks is `mN`.
-
-The concrete constants used by the proof layer agree with the current appendix choices:
-
-```text
-R = 4, c_eta = 10^4, C_ell = 10^5, C_delta = 10^-2.
-```
-
-## Deterministic proof chain
-
-The formalization includes the exact deterministic path maximizer and value identity, the dual-radius feasibility estimate, initial value gap, dimension-independent joint smoothness, the joint zero-chain, the normalized stationarity obstruction, the pointwise Moreau obstruction for `u_T=0`, and the final floor/scaling argument leading to the deterministic zero-respecting lower bound.
-
-The paper-facing endpoint is:
+The paper-facing deterministic endpoint is
 
 ```lean
 NCCLowerBound.paperDeterministicZeroRespectingLowerBound
 ```
 
-## Stochastic proof chain
+with the deterministic primal-dual-gap corollary represented in `NCCLowerBound/Corollary4_2.lean`.
 
-The current manuscript's stochastic organization is mirrored as follows:
+## Stochastic construction
 
-1. Huber clipping preserves the deterministic maximizer and value function while bounding the next unrevealed dual-frontier gradient by `G_N`.
-2. Lemma 5.2 randomizes only that dual-frontier coordinate.  The Lean paper-facing wrapper proves unbiasedness and the full-vector MSE bound; it does not redundantly package a progress theorem.
-3. Lemma 5.3 derives progress separately from the clipped zero-chain plus the Bernoulli oracle definition.  The formalization counts dual-gate successes and proves the `3/4` terminal-hidden event.
-4. The stochastic value identity gives the same proximal mapping as the deterministic construction.  At `s = 8 eps/(3 C_delta ell_0)`, the hidden event yields the pointwise `4 eps/3` obstruction, whose expectation is strictly larger than `eps`.
-5. The final parameter closure proves the additive lower-bound scale
+The stochastic proof uses Huber-clipped dual-path edges while preserving the deterministic block maximizer and the primal value function.
+
+Only the coordinates
 
 ```text
-L^2 D_y Delta_Phi / eps^3
-+ L^3 D_y^2 Delta_Phi sigma^2 / eps^6.
+y_2^(i), ..., y_N^(i)
 ```
 
-The public stochastic endpoint is:
+are Bernoulli-randomized. The coordinate `y_1^(i)` and all primal coordinates are returned exactly. The Lean transcript layer encodes this distinction through `IsRandomizedDualRank`.
+
+Consequently, after contracting deterministic transitions, the number of Bernoulli gates is
+
+```text
+M = (T - 1)(N - 1).
+```
+
+The randomized-coordinate gradient bound used by the oracle is
+
+```text
+G_N = 2 ell_0 tau_N,    tau_N = R alpha s,
+```
+
+so the Lean reveal-amplitude definition has the corresponding form
+
+```text
+2 * R * L0(L) * alpha * s.
+```
+
+The formalized stochastic parameter choices match the manuscript scaling
+
+```text
+s     = 8 eps / (3 C_delta ell_0)
+T     = floor(9 C_delta^2 L Delta / (256 c_eta C_ell eps^2))
+N     = floor(3 C_delta L D_y / (64 R C_ell eps))
+alpha = N^(-1/2).
+```
+
+The paper-facing stochastic endpoint is
 
 ```lean
 NCCLowerBound.paperStochasticZeroRespectingLowerBound
 ```
 
-## Scope boundary
+with additive query scale
 
-The manuscript and this repository prove zero-respecting lower bounds.  The discussion of possible resisting-rotation extensions beyond zero-respecting algorithms is not formalized as an additional theorem and is not silently assumed.
+```text
+L^2 D_y Delta eps^-3 + L^3 D_y^2 Delta sigma^2 eps^-6.
+```
+
+The stochastic primal-dual-gap corollary is represented in `NCCLowerBound/StochasticGapCorollary.lean`.
+
+## Universal constants
+
+The manuscript leaves the construction constants existential. The Lean development fixes the concrete witnesses
+
+```text
+R       = 4
+c_eta   = 10000
+C_delta = 0.01
+C_ell   = 100000
+```
+
+to discharge the numerical inequalities appearing in the obstruction and parameter-closure arguments. These values are formal witnesses rather than additional assumptions of the manuscript.
+
+## Scope
+
+The formalized lower bounds are for first-order zero-respecting algorithms, as stated in the manuscript. This audit does not claim an extension to unrestricted first-order algorithms via resisting rotations or related reductions.

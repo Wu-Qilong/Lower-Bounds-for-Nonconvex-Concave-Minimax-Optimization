@@ -1,38 +1,50 @@
-# Assumptions and Trust Boundary
+# Assumptions and trust boundary
 
 ## No project-defined axioms
 
-The Lean source tree contains no project-defined `axiom`, `sorry`, `admit`, `opaque`, or `constant` declarations.  The verification scripts reject these declarations mechanically, and `NCCLowerBound/AxiomAudit.lean` exposes the transitive axiom dependencies of representative paper-facing results with `#print axioms`.
+The Lean source tree is intended to contain no project-defined `axiom`, `sorry`, `admit`, `opaque`, or `constant` declarations. `check_no_placeholders.py` checks this mechanically, and `NCCLowerBound/AxiomAudit.lean` applies `#print axioms` to representative intermediate and final declarations.
 
-Foundational principles supplied by Lean and Mathlib may appear in the audit output.  They are part of the trusted theorem-prover/library foundation rather than additional assumptions introduced by this formalization.
+Foundational principles supplied by Lean/Mathlib remain part of the normal theorem-prover trust base.
 
 ## Algorithmic scope
 
-The manuscript and formalization establish lower bounds for deterministic and stochastic **zero-respecting first-order algorithms**.  The repository does not assert a lower bound for unrestricted first-order algorithms.  In particular, no resisting-rotation or resisting-oracle reduction is assumed or accepted as an axiom.
+The formalization establishes the manuscript lower bounds for deterministic and stochastic **zero-respecting first-order algorithms**. It does not assume or claim a resisting-rotation extension to unrestricted first-order algorithms.
 
-The stochastic algorithm interface is adaptive.  Private algorithmic randomness is represented by an arbitrary pre-sampled random tape `Seed`; conditioning on a fixed seed yields the fixed-randomness proof core, and the paper-facing wrapper quantifies over the random-tape type.
+Private stochastic-algorithm randomness is represented by an arbitrary pre-sampled seed/tape; the proof conditions on the seed and then quantifies over it in the public wrapper.
 
 ## Stochastic oracle model
 
-The paper-facing stochastic oracle randomizes only the next unrevealed dual-frontier coordinate.  Its Lean interface computes the frontier from the actual current query.  The formalization proves the required unbiasedness and bounded conditional mean-square error using the clipped-path frontier bound `G_N`.
+Only the next randomized dual coordinate among `y_2^(i),...,y_N^(i)` is Bernoulli-gated. The coordinate `y_1^(i)` and all primal coordinates are returned exactly/deterministically. The Lean predicate `IsRandomizedDualRank` encodes this distinction.
 
-The dual-gate counting proof treats only dual ranks as Bernoulli gates; non-dual transitions remain deterministic.  This matches the manuscript's Lemmas 5.2--5.3 rather than imposing a probability-`p_N` gate on every joint-chain coordinate.
+The reveal probability uses the bound
+
+```text
+G_N = 2 ell_0 tau_N = 2 R L0(L) alpha s,
+p_N = 1                         if sigma = 0,
+      min(1, G_N^2 / sigma^2)   otherwise.
+```
+
+After contracting deterministic transitions, the progress counter contains exactly
+
+```text
+M = (T - 1)(N - 1)
+```
+
+Bernoulli gates.
 
 ## Stationarity notion
 
-The lower bound concerns stationarity of the primal value function through the Moreau envelope of the extended value function.  The formalization uses the constrained proximal displacement corresponding to the manuscript's parameter `1/(2L)` and proves the terminal-coordinate obstruction used in both deterministic and stochastic results.
+The target is stationarity of the primal value function via the Moreau envelope of the extended value function at parameter `1/(2L)`, not a stationarity notion defined directly on the saddle function `f`.
 
-No claim is made here about a different stationarity notion defined directly from the saddle function `f`.
+## Concrete Lean witnesses for universal constants
 
-## Numerical constants
-
-The concrete proof modules instantiate the universal construction constants used in the manuscript, including
+The manuscript leaves the relevant construction constants existential. To discharge the corresponding numerical inequalities, the Lean formalization fixes the following universal witnesses:
 
 ```text
 R       = 4
-c_eta   = 10^4
-C_delta = 10^-2
-C_ell   = 10^5
+c_eta   = 10000
+C_delta = 0.01
+C_ell   = 100000
 ```
 
-and verify the associated arithmetic needed for smoothness, stationarity obstruction, feasibility, and final parameter scaling.
+These values serve only as formal witnesses for the existence statements used in the manuscript; the paper itself need not display these numerical choices.
