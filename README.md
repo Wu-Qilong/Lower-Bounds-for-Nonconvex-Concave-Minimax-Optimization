@@ -124,4 +124,4 @@ Build completed successfully (8804 jobs).
 
 ## License
 
-The release package uses the Apache License 2.0, matching the current repository packaging. The authors may replace the license before publication if a different distribution policy is desired.
+This project is licensed under the Apache License 2.0. See the `LICENSE` file for details.
