@@ -14,7 +14,7 @@
 | Lemma 3.3(2): normalized stationarity obstruction | `RelayObstructionCore`, `RelayObstructionEuclidean` | Low/high dichotomy, transition mass, and negative directional derivative. |
 | Lemma 3.3(3): Moreau obstruction for `u_T=0` | `MoreauLocalization` | Pointwise Moreau-gradient lower bound. |
 | Theorem 4.1 | `FinalDeterministicZeroRespecting`, `PaperAlignedZeroRespecting`; `paperDeterministicZeroRespectingLowerBound` | Deterministic zero-respecting lower bound. |
-| Corollary 4.2 | `Corollary4_2` | Deterministic primal-dual-gap version. |
+| Corollary 4.2 | `Corollary4_2`; `Corollary_4_2_PrimalDualGap` | Actual primal-dual gap `max_y f(0,y) - inf_x f(x,0)`, equality with the primal value-function gap for the hard instance, and the deterministic `G0` lower bound. |
 | Lemma 5.1(1)-(2): clipped maximizer/value preservation | `StochasticHuber`, `StochasticClippedMax`, `StochasticValueFunction` | Unique clipped maximizer and the same primal value function. |
 | Lemma 5.1(3)-(4): concavity and smoothness | `StochasticConcavity`, `StochasticClippedSmoothness` | Dimension-independent clipped-dual smoothness. |
 | Lemma 5.1(5): clipped zero-chain and dual gradient bound | `StochasticZeroChain`, `StochasticPendingClaims` | Zero-chain plus the randomized-coordinate bound used by the masked oracle, with paper-facing amplitude `G_N = 2 ell_0 tau_N`. |
@@ -22,4 +22,4 @@
 | Eqs. (52)-(54): contracted progress | `StochasticTranscript`, `StochasticStationarity`, `StochasticParameterClosure` | Exact randomized-gate count `M=(T-1)(N-1)` and `P(u_T=0)>=3/4`. |
 | Lemma 5.4 | `StochasticStationarity` | Hidden terminal coordinate gives the pointwise `4 eps / 3` obstruction; expectation exceeds `eps`. |
 | Theorem 5.5 | `StochasticParameterClosure`, `FinalStochasticZeroRespecting`, `PaperAlignedZeroRespecting`; `paperStochasticZeroRespectingLowerBound` | Additive deterministic-plus-variance lower bound. |
-| Corollary 5.6 | `StochasticGapCorollary` | Stochastic primal-dual-gap version. |
+| Corollary 5.6 | `StochasticGapCorollary`; `Corollary_5_6_PrimalDualGap` | Clipped primal-dual gap, the identity `f_sg(x,0)=f(x,0)`, equality with the stochastic primal value-function gap, and the additive stochastic `G0` lower bound. |

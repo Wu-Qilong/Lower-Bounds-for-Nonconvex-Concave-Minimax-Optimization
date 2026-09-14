@@ -19,7 +19,13 @@ The paper-facing deterministic endpoint is
 NCCLowerBound.paperDeterministicZeroRespectingLowerBound
 ```
 
-with the deterministic primal-dual-gap corollary represented in `NCCLowerBound/Corollary4_2.lean`.
+For Corollary 4.2, `NCCLowerBound/Corollary4_2.lean` explicitly defines the paper's primal-dual gap
+
+```text
+max_y f(0,y) - inf_x f(x,0)
+```
+
+and proves that, for the deterministic hard instance, it equals the primal value-function gap. The resulting theorem `NCCLowerBound.Corollary_4_2_PrimalDualGap` uses the budget `G0` and yields the deterministic query scale `L^2 D_y G0 eps^-3`.
 
 ## Stochastic construction
 
@@ -72,7 +78,24 @@ with additive query scale
 L^2 D_y Delta eps^-3 + L^3 D_y^2 Delta sigma^2 eps^-6.
 ```
 
-The stochastic primal-dual-gap corollary is represented in `NCCLowerBound/StochasticGapCorollary.lean`.
+For Corollary 5.6, `NCCLowerBound/StochasticGapCorollary.lean` proves
+
+```text
+f_sg(x,0) = f(x,0),
+```
+
+so the deterministic zero-dual infimum transfers unchanged to the clipped construction. Together with preservation of the primal value function, this yields the actual stochastic primal-dual-gap identity
+
+```text
+max_y f_sg(0,y) - inf_x f_sg(x,0)
+  = Phi_sg(0) - inf_x Phi_sg(x).
+```
+
+The paper-facing theorem `NCCLowerBound.Corollary_5_6_PrimalDualGap` uses the budget `G0` and has additive query scale
+
+```text
+L^2 D_y G0 eps^-3 + L^3 D_y^2 G0 sigma^2 eps^-6.
+```
 
 ## Universal constants
 
