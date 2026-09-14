@@ -28,10 +28,13 @@ representative paper-facing theorems.
 #print axioms NCCLowerBound.paperDualGateProgress_hidden_prob_ge_three_quarters
 #print axioms NCCLowerBound.stochastic_expected_moreau_gt_eps_of_parameter_certificate
 #print axioms NCCLowerBound.corollary_5_6_gap_identity
+#print axioms NCCLowerBound.Corollary_5_6_PrimalDualGap
 
 #print axioms NCCLowerBound.paperDeterministicZeroRespectingLowerBound
 #print axioms NCCLowerBound.paperStochasticZeroRespectingLowerBound_fixedSeed
 #print axioms NCCLowerBound.paperStochasticZeroRespectingLowerBound
 
+#check NCCLowerBound.Corollary_4_2_PrimalDualGap
+#check NCCLowerBound.Corollary_5_6_PrimalDualGap
 #check NCCLowerBound.paperDeterministicZeroRespectingLowerBound
 #check NCCLowerBound.paperStochasticZeroRespectingLowerBound
